@@ -109,7 +109,9 @@ export const createModelVersionApi = (
 
 const GET_MODEL_VERSION_ARTIFACT = 'GET_MODEL_VERSION_ARTIFACT';
 export const getModelVersionArtifactApi = (modelName: any, version: any, id = getUUID()) => {
-  const baseUri = 'model-versions/get-artifact?path=MLmodel';
+  const baseUri = process.env['MLFLOW_SERVER_ENDPOINT']
+    ? `${process.env['MLFLOW_SERVER_ENDPOINT']}/model-versions/get-artifact?path=MLmodel`
+    : 'model-versions/get-artifact?path=MLmodel';
   const uriEncodedModelName = `name=${encodeURIComponent(modelName)}`;
   const uriEncodedModelVersion = `version=${encodeURIComponent(version)}`;
   const artifactLocation = `${baseUri}&${uriEncodedModelName}&${uriEncodedModelVersion}`;

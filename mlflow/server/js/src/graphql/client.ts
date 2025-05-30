@@ -35,7 +35,7 @@ const apolloCache = new InMemoryCache({
 
 export function createApolloClient() {
   const httpLink = createHttpLink({
-    uri: '/graphql',
+    uri: process.env['MLFLOW_SERVER_ENDPOINT'] ? `${process.env['MLFLOW_SERVER_ENDPOINT']}/graphql` : '/graphql',
     credentials: 'same-origin',
     fetch: graphqlFetch,
   });

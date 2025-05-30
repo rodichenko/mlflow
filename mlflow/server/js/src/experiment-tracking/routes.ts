@@ -1,5 +1,11 @@
-import { createMLflowRoutePath, generatePath } from '../common/utils/RoutingUtils';
+import {
+  createMLflowRoutePath,
+  generatePath,
+  normalizeRouteOptions,
+  RouteOptions,
+} from '../common/utils/RoutingUtils';
 import { ExperimentPageTabName } from './constants';
+import { RoutePaths as CpRunRoutePaths } from '../cp-run/routes';
 
 // Route path definitions (used in defining route elements)
 export class RoutePaths {
@@ -32,6 +38,15 @@ export class RoutePaths {
   static get runPageWithTab() {
     return createMLflowRoutePath('/experiments/:experimentId/runs/:runUuid/*');
   }
+  static get cloudPipelineRunPageWithTab() {
+    return createMLflowRoutePath('/cp/:runId/experiments/:experimentId/runs/:runUuid/*');
+  }
+  static get embeddedRunPageWithTab() {
+    return createMLflowRoutePath('/embedded/experiments/:experimentId/runs/:runUuid/*');
+  }
+  static get cloudPipelineEmbeddedRunPageWithTab() {
+    return createMLflowRoutePath('/embedded/cp/:runId/experiments/:experimentId/runs/:runUuid/*');
+  }
   static get runPageWithArtifact() {
     return createMLflowRoutePath('/experiments/:experimentId/runs/:runUuid/artifactPath/*');
   }
@@ -44,11 +59,17 @@ export class RoutePaths {
   static get compareRuns() {
     return createMLflowRoutePath('/compare-runs');
   }
+  static get embeddedCompareRuns() {
+    return createMLflowRoutePath('/embedded/compare-runs');
+  }
   static get compareExperiments() {
     return createMLflowRoutePath('/compare-experiments');
   }
   static get compareExperimentsSearch() {
     return createMLflowRoutePath('/compare-experiments/:searchString');
+  }
+  static get embeddedCompareExperimentsSearch() {
+    return createMLflowRoutePath('/embedded/compare-experiments/:searchString');
   }
   /**
    * Route paths for prompts management.
@@ -117,19 +138,38 @@ class Routes {
     return `${path}?lifecycleFilter=${lifecycleStage}`;
   }
 
-  static getRunPageRoute(experimentId: string, runUuid: string, artifactPath: string | null = null) {
+  static getRunPageRoute(
+    experimentId: string,
+    runUuid: string,
+    artifactPath: string | null = null,
+    opts: RouteOptions | undefined = false) {
     if (artifactPath) {
-      return this.getRunPageTabRoute(experimentId, runUuid, ['artifacts', artifactPath].join('/'));
+      return this.getRunPageTabRoute(experimentId, runUuid, ['artifacts', artifactPath].join('/'), opts);
     }
-    return generatePath(RoutePaths.runPage, { experimentId, runUuid });
+    const { embedded, runId } = normalizeRouteOptions(opts);
+    if (runId) {
+      return generatePath(embedded ? RoutePaths.cloudPipelineEmbeddedRunPageWithTab : CpRunRoutePaths.cloudPipelineRunPageWithTab, { experimentId, runUuid, runId });
+    }
+    return generatePath(embedded ? RoutePaths.embeddedRunPageWithTab : RoutePaths.runPageWithTab, { experimentId, runUuid });
   }
 
   static getDirectRunPageRoute(runUuid: string) {
     return generatePath(RoutePaths.runPageDirect, { runUuid });
   }
 
-  static getRunPageTabRoute(experimentId: string, runUuid: string, tabPath?: string) {
-    return generatePath(RoutePaths.runPageWithTab, {
+  static getRunPageTabRoute(experimentId: string, runUuid: string, tabPath?: string, opts: RouteOptions | undefined = false) {
+    const { embedded, runId } = normalizeRouteOptions(opts);
+    if (runId) {
+      return generatePath(
+        embedded ? RoutePaths.cloudPipelineEmbeddedRunPageWithTab : CpRunRoutePaths.cloudPipelineRunPageWithTab, {
+          experimentId,
+          runUuid,
+          '*': tabPath,
+          runId,
+        });
+    }
+    return generatePath(
+      embedded ? RoutePaths.embeddedRunPageWithTab : RoutePaths.runPageWithTab, {
       experimentId,
       runUuid,
       '*': tabPath,
@@ -196,9 +236,13 @@ class Routes {
     return `${generatePath(RoutePaths.metricPage)}${queryString}`;
   }
 
-  static getCompareRunPageRoute(runUuids: string[], experimentIds: string[]) {
+  static getCompareRunPageRoute(runUuids: string[], experimentIds: string[], opts: RouteOptions | undefined = false) {
+    const { embedded, runId } = normalizeRouteOptions(opts);
     const queryString = `?runs=${JSON.stringify(runUuids)}&experiments=${JSON.stringify(experimentIds)}`;
-    return `${generatePath(RoutePaths.compareRuns)}${queryString}`;
+    if (runId) {
+      return `${generatePath(embedded ? CpRunRoutePaths.embeddedCloudPipelineRunCompareRuns : CpRunRoutePaths.cloudPipelineRunCompareRuns, {runId})}${queryString}`;
+    }
+    return `${generatePath(embedded ? RoutePaths.embeddedCompareRuns : RoutePaths.compareRuns)}${queryString}`;
   }
 
   static get compareRunPageRoute() {

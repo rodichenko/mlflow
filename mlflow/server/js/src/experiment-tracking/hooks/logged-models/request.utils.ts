@@ -15,7 +15,8 @@ export const loggedModelsDataRequest = async (
   method: 'POST' | 'GET' | 'PATCH' | 'DELETE' = 'GET',
   body?: any,
 ) => {
-  const response = await fetch(url, {
+  const fullUrl = process.env['MLFLOW_SERVER_ENDPOINT'] ? (new URL(url, process.env['MLFLOW_SERVER_ENDPOINT'])).href : url;
+  const response = await fetch(fullUrl, {
     method,
     body: serializeRequestBody(body),
     headers: body ? { 'Content-Type': 'application/json' } : {},

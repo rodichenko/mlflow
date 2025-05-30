@@ -34,3 +34,16 @@ export const getRouteDefs = () => [
     pageId: 'mlflow.model-registry.compare-model-versions',
   },
 ];
+
+export const getEmbeddedRouteDefs = () => [
+  {
+    path: ModelRegistryRoutePaths.embeddedModelVersionPage,
+    element: createLazyRouteElement(() => import('./components/ModelVersionPage')),
+    pageId: 'mlflow.embedded.model-registry.model-version-page',
+  },
+  {
+    path: ModelRegistryRoutePaths.embeddedCloudPipelineRunModelVersionPage,
+    element: createLazyRouteElement(() => import('./components/ModelVersionPage')),
+    pageId: 'mlflow.embedded.cp.model-registry.model-version-page',
+  },
+];

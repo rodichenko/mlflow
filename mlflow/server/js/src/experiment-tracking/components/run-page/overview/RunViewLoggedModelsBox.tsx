@@ -1,5 +1,5 @@
 import { ModelsIcon, Overflow, Typography, useDesignSystemTheme } from '@databricks/design-system';
-import { Link } from '../../../../common/utils/RoutingUtils';
+import { Link, useRouteOptions } from '../../../../common/utils/RoutingUtils';
 import { RunInfoEntity } from '../../../types';
 import Routes from '../../../routes';
 import { first } from 'lodash';
@@ -21,6 +21,7 @@ export const RunViewLoggedModelsBox = ({
     utcTimeCreated: number;
   }[];
 }) => {
+  const opts = useRouteOptions();
   const { theme } = useDesignSystemTheme();
   const { experimentId, runUuid } = runInfo;
 
@@ -48,7 +49,7 @@ export const RunViewLoggedModelsBox = ({
       {loggedModels.map((model, index) => {
         return (
           <Link
-            to={Routes.getRunPageRoute(experimentId ?? '', runUuid ?? '', model.artifactPath)}
+            to={Routes.getRunPageRoute(experimentId ?? '', runUuid ?? '', model.artifactPath, opts)}
             key={model.artifactPath}
             css={{
               display: 'flex',

@@ -234,7 +234,10 @@ export const RunViewHeaderRegisterModelButton = ({
 
   if (registeredModelVersionSummary) {
     return (
-      <Link to={registeredModelVersionSummary.link} target="_blank" css={{ marginLeft: theme.spacing.sm }}>
+      <Link
+        to={registeredModelVersionSummary.fullLink ?? registeredModelVersionSummary.link}
+        target="_blank"
+        css={{ marginLeft: theme.spacing.sm }}>
         <Button
           componentId="codegen_mlflow_app_src_experiment-tracking_components_run-page_runviewheaderregistermodelbutton.tsx_231"
           endIcon={<NewWindowIcon />}

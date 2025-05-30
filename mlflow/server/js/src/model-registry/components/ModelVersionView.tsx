@@ -6,9 +6,19 @@
  */
 
 import React from 'react';
-import { Link, NavigateFunction } from '../../common/utils/RoutingUtils';
+import {
+  EmbeddedLink,
+  RoutingViewProps,
+  Link,
+  NavigateFunction,
+  withEmbeddedView
+} from '../../common/utils/RoutingUtils';
+import { LeftOutlined } from '@ant-design/icons';
 import { ModelRegistryRoutes } from '../routes';
+import CpRunRoutes from '../../cp-run/routes';
+import ExperimentTrackingRoutes from '../../experiment-tracking/routes'
 import { PromoteModelButton } from './PromoteModelButton';
+import { DeployModelButton } from './DeployModelButton';
 import { SchemaTable } from './SchemaTable';
 import Utils from '../../common/utils/Utils';
 import { ModelStageTransitionDropdown } from './ModelStageTransitionDropdown';
@@ -42,7 +52,7 @@ import { ModelVersionViewAliasEditor } from './aliases/ModelVersionViewAliasEdit
 import type { ModelEntity, RunInfoEntity } from '../../experiment-tracking/types';
 import { ErrorWrapper } from '../../common/utils/ErrorWrapper';
 
-type ModelVersionViewImplProps = {
+type ModelVersionViewImplProps = RoutingViewProps & {
   modelName?: string;
   modelVersion?: any;
   modelEntity?: ModelEntity;
@@ -350,12 +360,12 @@ export class ModelVersionViewImpl extends React.Component<ModelVersionViewImplPr
     const sourceModelVersion = sourceParts[2];
     const link = (
       <>
-        <Link
+        <EmbeddedLink
           data-test-id="copied-from-link"
           to={ModelRegistryRoutes.getModelVersionPageRoute(sourceModelName, sourceModelVersion)}
         >
           {sourceModelName}
-        </Link>
+        </EmbeddedLink>
         &nbsp;
         <FormattedMessage
           defaultMessage="(Version {sourceModelVersion})"
@@ -462,7 +472,7 @@ export class ModelVersionViewImpl extends React.Component<ModelVersionViewImplPr
   }
 
   resolveRunLink() {
-    const { modelVersion, runInfo } = this.props;
+    const { modelVersion, runInfo, embedded, runId } = this.props;
     if (modelVersion.run_link) {
       return (
         // Reported during ESLint upgrade
@@ -478,7 +488,7 @@ export class ModelVersionViewImpl extends React.Component<ModelVersionViewImplPr
         artifactPath = extractArtifactPathFromModelSource(modelSource, runInfo.runUuid);
       }
       return (
-        <Link to={Routers.getRunPageRoute(runInfo.experimentId, runInfo.runUuid, artifactPath)}>
+        <Link to={Routers.getRunPageRoute(runInfo.experimentId, runInfo.runUuid, artifactPath, {embedded, runId})}>
           {this.resolveRunName()}
         </Link>
       );
@@ -504,7 +514,15 @@ export class ModelVersionViewImpl extends React.Component<ModelVersionViewImplPr
     return usingNextModelsUI ? <PromoteModelButton modelVersion={modelVersion} /> : null;
   }
 
-  getPageHeader(title: any, breadcrumbs: any) {
+  renderDeployModelButton() {
+    const { modelVersion, runInfo } = this.props;
+    return modelVersion && runInfo
+      ? <DeployModelButton modelVersion={modelVersion} runInfo={runInfo} />
+      : null;
+  }
+
+  getPageHeader(title: React.ReactNode, breadcrumbs: any) {
+    const {embedded, runId, runInfo} = this.props;
     const menu = [
       {
         id: 'delete',
@@ -520,36 +538,60 @@ export class ModelVersionViewImpl extends React.Component<ModelVersionViewImplPr
     ];
     return (
       <PageHeader title={title} breadcrumbs={breadcrumbs}>
-        {!this.shouldHideDeleteOption() && <OverflowMenu menu={menu} />}
-        {this.renderPomoteModelButton()}
+        {!this.shouldHideDeleteOption() && !embedded && <OverflowMenu menu={menu} />}
+        {this.renderDeployModelButton()}
+        {!embedded && this.renderPomoteModelButton()}
       </PageHeader>
     );
   }
 
   render() {
-    const { modelName = '', modelVersion, tags, schema } = this.props;
+    const { modelName = '', modelVersion, tags, schema, embedded, runId, runInfo } = this.props;
     const { description } = modelVersion;
     const { isDeleteModalVisible, isDeleteModalConfirmLoading, showDescriptionEditor, isTagsRequestPending } =
       this.state;
-    const title = (
+    const title = (embedded || runId) ? (
+      <FormattedMessage
+        defaultMessage="{modelName}, version {versionNum}"
+        description="Title text for model version page"
+        values={{ versionNum: modelVersion.version, modelName }}
+      />
+    ) : (
       <FormattedMessage
         defaultMessage="Version {versionNum}"
         description="Title text for model version page"
         values={{ versionNum: modelVersion.version }}
       />
     );
-    const breadcrumbs = [
-      <Link to={ModelRegistryRoutes.modelListPageRoute}>
-        <FormattedMessage
-          defaultMessage="Registered Models"
-          description="Text for link back to models page under the header on the model version
+    const breadcrumbs = (() => {
+      if (runId) {
+        const res = [
+          <Link to={CpRunRoutes.getCloudPipelineRunRoute(runId, embedded)}>
+            #{runId} job
+          </Link>
+        ];
+        if (runInfo) {
+          res.push(
+            <Link to={ExperimentTrackingRoutes.getRunPageRoute(runInfo.experimentId, runInfo.runUuid, null, {embedded, runId})}>
+              {this.resolveRunName()}
+            </Link>,
+          )
+        }
+        return res;
+      }
+      return [
+        <Link to={ModelRegistryRoutes.modelListPageRoute}>
+          <FormattedMessage
+            defaultMessage="Registered Models"
+            description="Text for link back to models page under the header on the model version
              view page"
-        />
-      </Link>,
-      <Link data-test-id="breadcrumbRegisteredModel" to={ModelRegistryRoutes.getModelPageRoute(modelName)}>
-        {modelName}
-      </Link>,
-    ];
+          />
+        </Link>,
+        <Link data-test-id="breadcrumbRegisteredModel" to={ModelRegistryRoutes.getModelPageRoute(modelName)}>
+          {modelName}
+        </Link>,
+      ];
+    })();
     return (
       <div>
         {this.getPageHeader(title, breadcrumbs)}
@@ -559,7 +601,7 @@ export class ModelVersionViewImpl extends React.Component<ModelVersionViewImplPr
         {this.renderMetadata(modelVersion)}
 
         {/* New models UI switch */}
-        {shouldShowModelsNextUI() && (
+        {shouldShowModelsNextUI() && !embedded && (
           <div css={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
             <ModelsNextUIToggleSwitch />
           </div>
@@ -666,4 +708,4 @@ const mapDispatchToProps = { setModelVersionTagApi, deleteModelVersionTagApi };
 export const ModelVersionView = connect(
   mapStateToProps,
   mapDispatchToProps,
-)(withNextModelsUIContext(injectIntl<'intl', ModelVersionViewImplProps>(ModelVersionViewImpl)));
+)(withNextModelsUIContext(withEmbeddedView(injectIntl<'intl', ModelVersionViewImplProps>(ModelVersionViewImpl))));

@@ -2,7 +2,7 @@ import { Button } from '@databricks/design-system';
 import { Theme } from '@emotion/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
-import { useNavigate } from '../../../../../common/utils/RoutingUtils';
+import {useNavigate, useRouteOptions} from '../../../../../common/utils/RoutingUtils';
 import { LegacyTooltip } from '@databricks/design-system';
 import { LIFECYCLE_FILTER } from '../../../../constants';
 import Routes from '../../../../routes';
@@ -30,6 +30,7 @@ export const ExperimentViewRunsControlsActions = React.memo(
     const { lifecycleFilter } = searchFacetsState;
 
     const navigate = useNavigate();
+    const opts = useRouteOptions();
     const { theme } = useDesignSystemTheme();
 
     const [showDeleteRunModal, setShowDeleteRunModal] = useState(false);
@@ -52,8 +53,8 @@ export const ExperimentViewRunsControlsActions = React.memo(
         .filter(({ runUuid }: RunInfoEntity) => runsSelectedList.includes(runUuid))
         .map(({ experimentId }: any) => experimentId);
 
-      navigate(Routes.getCompareRunPageRoute(runsSelectedList, [...new Set(experimentIds)].sort()));
-    }, [navigate, runInfos, runsSelected]);
+      navigate(Routes.getCompareRunPageRoute(runsSelectedList, [...new Set(experimentIds)].sort(), opts));
+    }, [navigate, runInfos, runsSelected, opts]);
 
     const onDeleteRun = useCallback(() => setShowDeleteRunModal(true), []);
     const onRestoreRun = useCallback(() => setShowRestoreRunModal(true), []);

@@ -72,3 +72,26 @@ export const getRouteDefs = () => [
   },
   ...getPromptPagesRouteDefs(),
 ];
+
+export const getEmbeddedRouteDefs = () => [
+  {
+    path: RoutePaths.embeddedRunPageWithTab,
+    element: createLazyRouteElement(() => import('./components/run-page/RunPage')),
+    pageId: 'mlflow.embedded.experiment.run.details',
+  },
+  {
+    path: RoutePaths.cloudPipelineEmbeddedRunPageWithTab,
+    element: createLazyRouteElement(() => import('./components/run-page/RunPage')),
+    pageId: 'mlflow.embedded.cp.experiment.run.details',
+  },
+  {
+    path: RoutePaths.embeddedCompareExperimentsSearch,
+    element: createLazyRouteElement(() => import(/* webpackChunkName: "experimentPage" */ './components/HomePage')),
+    pageId: 'mlflow.embedded.experiment.compare',
+  },
+  {
+    path: RoutePaths.embeddedCompareRuns,
+    element: createLazyRouteElement(() => import('./components/CompareRunPage')),
+    pageId: 'mlflow.embedded.experiment.run.compare',
+  },
+]

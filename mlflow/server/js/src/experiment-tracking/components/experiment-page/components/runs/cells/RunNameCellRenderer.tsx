@@ -2,7 +2,7 @@ import { ICellRendererParams } from '@ag-grid-community/core';
 import { Button, MinusSquareIcon, PlusSquareIcon, useDesignSystemTheme } from '@databricks/design-system';
 import { Theme } from '@emotion/react';
 import React, { useMemo } from 'react';
-import { Link } from '../../../../../../common/utils/RoutingUtils';
+import { Link, useRouteOptions } from '../../../../../../common/utils/RoutingUtils';
 import Routes from '../../../../../routes';
 import { RunRowType } from '../../../utils/experimentPage.row-types';
 import { GroupParentCellRenderer } from './GroupParentCellRenderer';
@@ -20,6 +20,8 @@ export interface RunNameCellRendererProps extends ICellRendererParams {
 
 export const RunNameCellRenderer = React.memo((props: RunNameCellRendererProps) => {
   const { theme } = useDesignSystemTheme();
+
+  const opts = useRouteOptions();
 
   const saveRunColor = useSaveExperimentRunColor();
   const getRunColor = useGetExperimentRunColor();
@@ -83,7 +85,7 @@ export const RunNameCellRenderer = React.memo((props: RunNameCellRendererProps) 
             onChangeColor={(colorValue) => saveRunColor({ runUuid, colorValue })}
           />
         )}
-        <Link to={Routes.getRunPageRoute(experimentId, runUuid)} css={styles.runLink} tabIndex={0}>
+        <Link to={Routes.getRunPageRoute(experimentId, runUuid, undefined, opts)} css={styles.runLink} tabIndex={0}>
           <span css={styles.runName}>{runName}</span>
         </Link>
       </div>

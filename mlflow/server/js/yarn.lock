@@ -92,6 +92,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ant-design/icons-svg@npm:^4.3.0":
+  version: 4.4.2
+  resolution: "@ant-design/icons-svg@npm:4.4.2"
+  checksum: 10c0/d08f051824599850efcd691a67b0ee602ee886f23fe04e77890b083a0343cde72560317e3909fd029f999df00aef7b57142c863326fff7293251d9162828079b
+  languageName: node
+  linkType: hard
+
+"@ant-design/icons@npm:4.x":
+  version: 4.8.3
+  resolution: "@ant-design/icons@npm:4.8.3"
+  dependencies:
+    "@ant-design/colors": "npm:^6.0.0"
+    "@ant-design/icons-svg": "npm:^4.3.0"
+    "@babel/runtime": "npm:^7.11.2"
+    classnames: "npm:^2.2.6"
+    lodash: "npm:^4.17.15"
+    rc-util: "npm:^5.9.4"
+  peerDependencies:
+    react: ">=16.0.0"
+    react-dom: ">=16.0.0"
+  checksum: 10c0/1707c68b0c2b4d7679e1c0b9fba52ab91acbd720ff5b352b18c3574f7946002ae972772605f25ab30aaae29c293a999b361ac78747cd644895bc6921c3f3a195
+  languageName: node
+  linkType: hard
+
 "@ant-design/icons@npm:^4.6.2, @ant-design/icons@npm:^4.7.0":
   version: 4.7.0
   resolution: "@ant-design/icons@npm:4.7.0"
@@ -4341,6 +4365,7 @@ __metadata:
     "@ag-grid-community/client-side-row-model": "npm:^27.2.1"
     "@ag-grid-community/core": "npm:^27.2.1"
     "@ag-grid-community/react": "npm:^27.2.1"
+    "@ant-design/icons": "npm:4.x"
     "@apollo/client": "npm:^3.6.9"
     "@apollo/client-3-12": "npm:@apollo/client@^3.12.7"
     "@babel/core": "npm:^7.26.0"

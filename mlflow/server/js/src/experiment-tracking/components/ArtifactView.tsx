@@ -8,7 +8,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { injectIntl, FormattedMessage, IntlShape, useIntl } from 'react-intl';
-import { Link } from '../../common/utils/RoutingUtils';
+import {type RoutingViewProps, Link, withEmbeddedView, useRouteOptions} from '../../common/utils/RoutingUtils';
 import { getBasename } from '../../common/utils/FileUtils';
 import { ArtifactNode as ArtifactUtils, ArtifactNode } from '../utils/ArtifactUtils';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'byte... Remove this comment to see the full error message
@@ -56,7 +56,7 @@ import { getExtension, TEXT_EXTENSIONS } from '../../common/utils/FileUtils';
 
 const { Text } = Typography;
 
-type ArtifactViewImplProps = DesignSystemHocProps & {
+type ArtifactViewImplProps = DesignSystemHocProps & RoutingViewProps & {
   runUuid: string;
   initialSelectedArtifactPath?: string;
   artifactNode: any; // TODO: PropTypes.instanceOf(ArtifactNode)
@@ -110,7 +110,14 @@ export class ArtifactViewImpl extends Component<ArtifactViewImplProps, ArtifactV
   }
 
   renderModelVersionInfoSection(existingModelVersions: any, intl: IntlShape) {
-    return <ModelVersionInfoSection modelVersion={_.last(existingModelVersions)} intl={this.props.intl} />;
+    return (
+      <ModelVersionInfoSection
+        modelVersion={_.last(existingModelVersions)}
+        intl={this.props.intl}
+        embedded={this.props.embedded}
+        runId={this.props.runId}
+      />
+    );
   }
 
   renderPathAndSizeInfo() {
@@ -576,22 +583,26 @@ const mapDispatchToProps = {
 export const ArtifactView = connect(
   mapStateToProps,
   mapDispatchToProps,
-)(WithDesignSystemThemeHoc(injectIntl(ArtifactViewImpl)));
+)(WithDesignSystemThemeHoc(withEmbeddedView(injectIntl(ArtifactViewImpl))));
 
-type ModelVersionInfoSectionProps = {
+type ModelVersionInfoSectionProps = RoutingViewProps & {
   modelVersion: any;
   intl: IntlShape;
 };
 
 function ModelVersionInfoSection(props: ModelVersionInfoSectionProps) {
-  const { modelVersion, intl } = props;
+  const { modelVersion, intl, embedded, runId } = props;
   const { name, version, status, status_message } = modelVersion;
 
   // eslint-disable-next-line prefer-const
-  let mvPageRoute = ModelRegistryRoutes.getModelVersionPageRoute(name, version);
+  let mvPageRoute = ModelRegistryRoutes.getModelVersionPageRoute(name, version, {embedded, runId});
   const modelVersionLink = (
     <LegacyTooltip title={`${name} version ${version}`}>
-      <Link to={mvPageRoute} className="model-version-link" target="_blank" rel="noreferrer">
+      <Link
+        to={mvPageRoute}
+        className="model-version-link"
+        target={embedded ? undefined : '_blank'}
+        rel={embedded ? undefined : 'noreferrer'}>
         <span className="model-name">{name}</span>
         <span>,&nbsp;v{version}&nbsp;</span>
         <i className="fas fa-external-link-o" />

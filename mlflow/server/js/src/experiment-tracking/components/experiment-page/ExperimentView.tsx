@@ -31,8 +31,10 @@ import { ExperimentViewHeader } from './components/header/ExperimentViewHeader';
 import invariant from 'invariant';
 import { useExperimentPageViewMode } from './hooks/useExperimentPageViewMode';
 import { ExperimentViewTraces } from './components/ExperimentViewTraces';
+import { useIsEmbedded } from '../../..//common/utils/RoutingUtils';
 
 export const ExperimentView = () => {
+  const isEmbedded = useIsEmbedded();
   const dispatch = useDispatch<ThunkDispatch>();
 
   const [searchFacets, experimentIds, isPreview] = useExperimentPageSearchFacets();
@@ -166,17 +168,23 @@ export const ExperimentView = () => {
   return (
     <ExperimentPageUIStateContextProvider setUIState={setUIState}>
       <div css={styles.experimentViewWrapper}>
-        {isLoading ? (
-          <LegacySkeleton title paragraph={false} active />
-        ) : (
-          <>
-            {isComparingExperiments ? (
-              <ExperimentViewHeaderCompare experiments={experiments} />
-            ) : (
-              renderExperimentHeader()
-            )}
-          </>
-        )}
+        {
+          !isEmbedded && (
+            <>
+              {isLoading ? (
+                <LegacySkeleton title paragraph={false} active />
+              ) : (
+                <>
+                  {isComparingExperiments ? (
+                    <ExperimentViewHeaderCompare experiments={experiments} />
+                  ) : (
+                    renderExperimentHeader()
+                  )}
+                </>
+              )}
+            </>
+          )
+        }
         {getRenderedView()}
       </div>
     </ExperimentPageUIStateContextProvider>

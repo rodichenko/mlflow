@@ -1,4 +1,4 @@
-import { Link } from '../../../../common/utils/RoutingUtils';
+import { EmbeddedLink as Link } from '../../../../common/utils/RoutingUtils';
 import Utils from '../../../../common/utils/Utils';
 import Routes from '../../../routes';
 import type { KeyValueEntity, RunInfoEntity } from '../../../types';

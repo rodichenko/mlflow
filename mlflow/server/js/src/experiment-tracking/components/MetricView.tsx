@@ -12,13 +12,13 @@ import Utils from '../../common/utils/Utils';
 import './MetricView.css';
 import { getExperiment, getRunInfo } from '../reducers/Reducers';
 import MetricsPlotPanel from './MetricsPlotPanel';
-import { Link } from '../../common/utils/RoutingUtils';
+import {Link, RoutingViewProps, withEmbeddedView} from '../../common/utils/RoutingUtils';
 import type { Location } from '../../common/utils/RoutingUtils';
 import { PageHeader } from '../../shared/building_blocks/PageHeader';
 import Routes from '../routes';
 import { withRouterNext } from '../../common/utils/withRouterNext';
 
-type MetricViewImplProps = {
+type MetricViewImplProps = RoutingViewProps & {
   experiments: any[]; // TODO: PropTypes.instanceOf(Experiment)
   experimentIds: string[];
   comparedExperimentIds?: string[];
@@ -124,4 +124,4 @@ const mapStateToProps = (state: any, ownProps: any) => {
   return { experiments, runNames, comparedExperimentIds, hasComparedExperimentsBefore };
 };
 
-export const MetricView = withRouterNext(connect(mapStateToProps)(MetricViewImpl));
+export const MetricView = withRouterNext(withEmbeddedView(connect(mapStateToProps)(MetricViewImpl)));

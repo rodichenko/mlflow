@@ -1,6 +1,6 @@
 import { LegacyTabs } from '@databricks/design-system';
 import { FormattedMessage } from 'react-intl';
-import { useNavigate, useParams } from '../../../common/utils/RoutingUtils';
+import {useNavigate, useParams, useIsEmbedded, useRouteOptions} from '../../../common/utils/RoutingUtils';
 import Routes from '../../routes';
 import { RunPageTabName } from '../../constants';
 import { useRunViewActiveTab } from './useRunViewActiveTab';
@@ -15,6 +15,7 @@ const TABS_WITHOUT_MARGIN = [RunPageTabName.ARTIFACTS, RunPageTabName.EVALUATION
  * Mode switcher for the run details page.
  */
 export const RunViewModeSwitch = () => {
+  const opts = useRouteOptions();
   const { experimentId, runUuid } = useParams<{ runUuid: string; experimentId: string }>();
   const navigate = useNavigate();
   const currentTab = useRunViewActiveTab();
@@ -28,10 +29,10 @@ export const RunViewModeSwitch = () => {
     setRemoveTabMargin(TABS_WITHOUT_MARGIN.includes(newTabKey as RunPageTabName));
 
     if (newTabKey === RunPageTabName.OVERVIEW) {
-      navigate(Routes.getRunPageRoute(experimentId, runUuid));
+      navigate(Routes.getRunPageRoute(experimentId, runUuid, undefined, opts));
       return;
     }
-    navigate(Routes.getRunPageTabRoute(experimentId, runUuid, newTabKey));
+    navigate(Routes.getRunPageTabRoute(experimentId, runUuid, newTabKey, opts));
   };
 
   return (

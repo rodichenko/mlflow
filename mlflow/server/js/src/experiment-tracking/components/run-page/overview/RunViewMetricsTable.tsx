@@ -12,7 +12,7 @@ import {
 import { MetricEntitiesByName, MetricEntity, RunInfoEntity } from '../../../types';
 import { sum, values } from 'lodash';
 import { useMemo, useState } from 'react';
-import { Link } from '../../../../common/utils/RoutingUtils';
+import { EmbeddedLink as Link } from '../../../../common/utils/RoutingUtils';
 import Routes from '../../../routes';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { isSystemMetricKey } from '../../../utils/MetricsUtils';

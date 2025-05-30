@@ -3,6 +3,7 @@ import type { ReduxState } from '../../../../redux-types';
 import { ModelRegistryRoutes } from '../../../../model-registry/routes';
 import { shouldEnableGraphQLModelVersionsForRunDetails } from '../../../../common/utils/FeatureUtils';
 import { UseGetRunQueryResponse } from './useGetRunQuery';
+import {useIsEmbedded, useRouteOptions} from '../../../../common/utils/RoutingUtils';
 
 /**
  * A unified model version summary that can be used to display model versions on the run page.
@@ -11,6 +12,7 @@ export type RunPageModelVersionSummary = {
   displayedName: string | null;
   version: string | null;
   link: string;
+  fullLink?: string;
   status: string | null;
   source: string | null;
 };
@@ -28,6 +30,7 @@ export const useUnifiedRegisteredModelVersionsSummariesForRun = ({
   runUuid: string;
   queryResult?: UseGetRunQueryResponse;
 }): RunPageModelVersionSummary[] => {
+  const opts = useRouteOptions();
   const { registeredModels: registeredModelsFromStore } = useSelector(({ entities }: ReduxState) => ({
     registeredModels: entities.modelVersionsByRunUuid[runUuid],
   }));
@@ -40,6 +43,10 @@ export const useUnifiedRegisteredModelVersionsSummariesForRun = ({
           displayedName: modelVersion.name,
           version: modelVersion.version,
           link:
+            modelVersion.name && modelVersion.version
+              ? ModelRegistryRoutes.getModelVersionPageRoute(modelVersion.name, modelVersion.version, opts)
+              : '',
+          fullLink:
             modelVersion.name && modelVersion.version
               ? ModelRegistryRoutes.getModelVersionPageRoute(modelVersion.name, modelVersion.version)
               : '',
@@ -54,11 +61,13 @@ export const useUnifiedRegisteredModelVersionsSummariesForRun = ({
   if (registeredModelsFromStore) {
     return registeredModelsFromStore.map((modelVersion) => {
       const name = modelVersion.name;
-      const link = ModelRegistryRoutes.getModelVersionPageRoute(name, modelVersion.version);
+      const link = ModelRegistryRoutes.getModelVersionPageRoute(name, modelVersion.version, opts);
+      const fullLink = ModelRegistryRoutes.getModelVersionPageRoute(name, modelVersion.version);
       return {
         displayedName: modelVersion.name,
         version: modelVersion.version,
         link,
+        fullLink,
         status: modelVersion.status,
         source: modelVersion.source,
       };

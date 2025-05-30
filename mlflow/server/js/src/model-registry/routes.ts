@@ -1,4 +1,5 @@
-import { createMLflowRoutePath, generatePath } from '../common/utils/RoutingUtils';
+import {createMLflowRoutePath, generatePath, normalizeRouteOptions, RouteOptions} from '../common/utils/RoutingUtils';
+import { RoutePaths as CpRunRoutePaths } from '../cp-run/routes'
 
 // Route path definitions (used in defining route elements)
 export class ModelRegistryRoutePaths {
@@ -23,6 +24,12 @@ export class ModelRegistryRoutePaths {
   static get createModel() {
     return createMLflowRoutePath('/createModel');
   }
+  static get embeddedModelVersionPage() {
+    return createMLflowRoutePath('/embedded/models/:modelName/versions/:version');
+  }
+  static get embeddedCloudPipelineRunModelVersionPage() {
+    return createMLflowRoutePath('/embedded/cp/:runId/models/:modelName/versions/:version');
+  }
 }
 
 // Concrete routes and functions for generating parametrized paths
@@ -41,8 +48,20 @@ export class ModelRegistryRoutes {
       subpage: PANES.SERVING,
     });
   }
-  static getModelVersionPageRoute(modelName: string, version: string) {
-    return generatePath(ModelRegistryRoutePaths.modelVersionPage, {
+  static getModelVersionPageRoute(modelName: string, version: string, opts: RouteOptions = false) {
+    const { embedded, runId } = normalizeRouteOptions(opts);
+    if (runId) {
+      return generatePath(
+        embedded
+          ? ModelRegistryRoutePaths.embeddedCloudPipelineRunModelVersionPage
+          : CpRunRoutePaths.cloudPipelineRunModelVersionPage, {
+          modelName: encodeURIComponent(modelName),
+          version,
+          runId,
+        });
+    }
+    return generatePath(
+      embedded ? ModelRegistryRoutePaths.embeddedModelVersionPage : ModelRegistryRoutePaths.modelVersionPage, {
       modelName: encodeURIComponent(modelName),
       version,
     });

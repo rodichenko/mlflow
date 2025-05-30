@@ -7,7 +7,7 @@
 
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { Link } from '../../common/utils/RoutingUtils';
+import {Link, RoutingViewProps, withEmbeddedView} from '../../common/utils/RoutingUtils';
 import _ from 'lodash';
 import { FormattedMessage, injectIntl, IntlShape } from 'react-intl';
 import {
@@ -53,7 +53,7 @@ function CenteredText(props: any) {
   );
 }
 
-type CompareModelVersionsViewImplProps = {
+type CompareModelVersionsViewImplProps = RoutingViewProps & {
   runInfos: RunInfoEntity[];
   runInfosValid: boolean[];
   runUuids: string[];
@@ -148,6 +148,8 @@ export class CompareModelVersionsViewImpl extends Component<
       paramLists,
       metricLists,
       intl,
+      embedded,
+      runId,
     } = this.props;
     const title = (
       <FormattedMessage
@@ -756,4 +758,4 @@ const mapStateToProps = (state: any, ownProps: any) => {
   };
 };
 
-export const CompareModelVersionsView = connect(mapStateToProps)(injectIntl(CompareModelVersionsViewImpl));
+export const CompareModelVersionsView = connect(mapStateToProps)(withEmbeddedView(injectIntl(CompareModelVersionsViewImpl)));

@@ -57,6 +57,7 @@ import {
 } from '../../models/ExperimentPageSearchFacetsState';
 import { useUpdateExperimentViewUIState } from '../../contexts/ExperimentPageUIStateContext';
 import { useShouldShowCombinedRunsTab } from '../../hooks/useShouldShowCombinedRunsTab';
+import {useCloudPipelineRun, useIsEmbedded} from '../../../../../common/utils/RoutingUtils';
 
 export type ExperimentViewRunsControlsFiltersProps = {
   searchFacetsState: ExperimentPageSearchFacetsState;
@@ -88,6 +89,8 @@ export const ExperimentViewRunsControlsFilters = React.memo(
     autoRefreshEnabled = false,
     hideEmptyCharts = false,
   }: ExperimentViewRunsControlsFiltersProps) => {
+    const isEmbedded = useIsEmbedded();
+    const runId = useCloudPipelineRun();
     const setUrlSearchFacets = useUpdateExperimentPageSearchFacets();
     const showCombinedRuns = useShouldShowCombinedRunsTab();
 
@@ -206,16 +209,19 @@ export const ExperimentViewRunsControlsFilters = React.memo(
               </SegmentedControlButton>
             </SegmentedControlGroup>
           )}
-
-          <RunsSearchAutoComplete
-            runsData={runsData}
-            searchFilter={searchFilter}
-            onSearchFilterChange={searchFilterChange}
-            onClear={() => {
-              setUrlSearchFacets(createExperimentPageSearchFacetsState());
-            }}
-            requestError={requestError}
-          />
+          {
+            !isEmbedded && !runId && (
+              <RunsSearchAutoComplete
+                runsData={runsData}
+                searchFilter={searchFilter}
+                onSearchFilterChange={searchFilterChange}
+                onClear={() => {
+                  setUrlSearchFacets(createExperimentPageSearchFacetsState());
+                }}
+                requestError={requestError}
+              />
+            )
+          }
 
           <DialogCombobox
             componentId="codegen_mlflow_app_src_experiment-tracking_components_experiment-page_components_runs_experimentviewrunscontrolsfilters.tsx_217"
@@ -443,7 +449,7 @@ export const ExperimentViewRunsControlsFilters = React.memo(
           )}
           {!shouldEnableExperimentPageAutoRefresh() && <ExperimentViewRefreshButton refreshRuns={refreshRuns} />}
           {/* TODO: Add tooltip to guide users to this button */}
-          {!isComparingExperiments && (
+          {!isComparingExperiments && !isEmbedded && (
             <DropdownMenu.Root>
               <DropdownMenu.Trigger asChild>
                 <Button

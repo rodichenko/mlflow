@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { PageWrapper, Spacer } from '@databricks/design-system';
+import { useIsEmbedded } from '../utils/RoutingUtils';
 
 type OwnProps = {
   usesFullHeight?: boolean;
@@ -17,12 +18,16 @@ type OwnProps = {
 type Props = OwnProps & typeof PageContainer.defaultProps;
 
 export function PageContainer(props: Props) {
+  const embedded = useIsEmbedded();
   const { usesFullHeight, ...restProps } = props;
+  const css = usesFullHeight
+    ? (embedded ? styles.useFullHeightLayoutEmbedded : styles.useFullHeightLayout)
+    : (embedded ? styles.embeddedWrapper : styles.wrapper)
   return (
     // @ts-expect-error TS(2322): Type '{ height: string; display: string; flexDirec... Remove this comment to see the full error message
-    <PageWrapper css={usesFullHeight ? styles.useFullHeightLayout : styles.wrapper}>
+    <PageWrapper css={css}>
       {/* @ts-expect-error TS(2322): Type '{ css: { flexShrink: number; }; }' is not as... Remove this comment to see the full error message */}
-      <Spacer css={styles.fixedSpacer} />
+      {!embedded && <Spacer css={styles.fixedSpacer} />}
       {usesFullHeight ? props.children : <div {...restProps} css={styles.container} />}
     </PageWrapper>
   );
@@ -41,7 +46,17 @@ const styles = {
       flexGrow: 1,
     },
   },
+  useFullHeightLayoutEmbedded: {
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    padding: 5,
+    '&:last-child': {
+      flexGrow: 1,
+    },
+  },
   wrapper: { flex: 1 },
+  embeddedWrapper: { flex: 1, padding: 5 },
   fixedSpacer: {
     // Ensure spacer's fixed height regardless of flex
     flexShrink: 0,

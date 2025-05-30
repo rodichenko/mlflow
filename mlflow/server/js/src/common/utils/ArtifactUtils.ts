@@ -118,6 +118,8 @@ export const getLoggedModelArtifactLocationUrl = (path: string, loggedModelId: s
 };
 
 export const getArtifactLocationUrl = (path: string, runUuid: string) => {
-  const artifactEndpointPath = 'get-artifact';
+  const artifactEndpointPath = process.env['MLFLOW_SERVER_ENDPOINT']
+    ? `${process.env['MLFLOW_SERVER_ENDPOINT']}/get-artifact`
+    : 'get-artifact';
   return `${artifactEndpointPath}?path=${encodeURIComponent(path)}&run_uuid=${encodeURIComponent(runUuid)}`;
 };

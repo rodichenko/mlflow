@@ -52,6 +52,10 @@ export const getDefaultHeaders = (cookieStr: any) => {
 };
 
 const getAjaxUrl = (relativeUrl: any) => {
+  // eslint-disable-next-line
+  if (process.env['MLFLOW_SERVER_ENDPOINT'] && process.env['MLFLOW_SERVER_ENDPOINT'] !== '') {
+    return new URL(relativeUrl, `${process.env['MLFLOW_SERVER_ENDPOINT']}/`).href;
+  }
   // @ts-expect-error TS(4111): Property 'MLFLOW_USE_ABSOLUTE_AJAX_URLS' comes from an in... Remove this comment to see the full error message
   if (process.env.MLFLOW_USE_ABSOLUTE_AJAX_URLS === 'true' && !relativeUrl.startsWith('/')) {
     return '/' + relativeUrl;
@@ -102,6 +106,8 @@ const defaultError = ({ reject, response, err }: any) => {
  * use `fetchEndpoint` instead.
  */
 export const fetchEndpointRaw = ({
+  url: fullUrl,
+  base,
   relativeUrl,
   method = HTTPMethods.GET,
   body = undefined,
@@ -109,7 +115,15 @@ export const fetchEndpointRaw = ({
   options = {},
   timeoutMs = undefined,
 }: any) => {
-  const url = getAjaxUrl(relativeUrl);
+  const url = (() => {
+    if (fullUrl) {
+      return fullUrl;
+    }
+    if (base) {
+      return new URL(relativeUrl, base.endsWith('/') ? base : base.concat('/'));
+    }
+    return getAjaxUrl(relativeUrl);
+  })();
 
   // if custom headers has duplicate fields with default Headers,
   // values in the custom headers options will always override.
@@ -206,6 +220,8 @@ const defaultFetchErrorConditionFn = (res: any) => !res || (!res.ok && !HTTPRetr
 
 /**
  * Makes a fetch request.
+ * @param base: base URL
+ * @param url: full URL
  * @param relativeUrl: relative URL to the shard URL
  * @param method: HTTP method for the request
  * @param body: request body
@@ -222,6 +238,8 @@ const defaultFetchErrorConditionFn = (res: any) => !res || (!res.ok && !HTTPRetr
  * @returns {Promise<T>}
  */
 export const fetchEndpoint = ({
+  base,
+  url,
   relativeUrl,
   method = HTTPMethods.GET,
   body = undefined,
@@ -238,6 +256,8 @@ export const fetchEndpoint = ({
     retry(
       () =>
         fetchEndpointRaw({
+          base,
+          url,
           relativeUrl,
           method,
           body,
@@ -440,3 +460,90 @@ export const deleteYaml = (props: any) => {
     success: yamlResponseParser,
   });
 };
+
+export type CloudPipelineSettings = {
+  cloud_pipeline_url?: string;
+  model_uri_parameter?: string;
+  cp_mlflow_experiment_id_tag_name?: string;
+  cp_mlflow_run_uuid_tag_name?: string;
+  check_run_status?: boolean;
+  run_payload?: Record<string, unknown>;
+  cp_run_id_tag?: string;
+};
+
+const _fetchCloudPipelineSettings = new Promise<CloudPipelineSettings>(async (resolve) => {
+  try {
+    const url = process.env['MLFLOW_SETTINGS_JSON'] ? process.env['MLFLOW_SETTINGS_JSON'] : 'static-files/settings.json';
+    const d = await fetchEndpointRaw({relativeUrl: url});
+    const settings = await d.json();
+    resolve(settings);
+  } catch (error) {
+    console.log('error fetching settings.json', error);
+    resolve({});
+  }
+});
+
+export function fetchCloudPipelineSettings(): Promise<CloudPipelineSettings> {
+  return _fetchCloudPipelineSettings;
+}
+
+function parseCloudPipelineResponse(response: unknown) {
+  if (typeof response === 'object') {
+    const {
+      status = 'OK',
+      payload,
+      message,
+      error
+    } = response as Record<string, unknown>;
+    if (status && typeof status === 'string') {
+      if (!/^OK/i.test(status)) {
+        throw new Error((error as string) || (message as string) || 'error fetching cloud pipeline API');
+      }
+      return payload;
+    }
+  }
+  return response;
+}
+
+function getCloudPipelineRestApiUrl(cloudPipelineUrl: string): string {
+  if (cloudPipelineUrl.endsWith('/')) {
+    return cloudPipelineUrl + 'restapi/';
+  }
+  return cloudPipelineUrl + '/restapi/';
+}
+
+export const cloudPipelineGetJson = async (props: any) => {
+  const { cloud_pipeline_url } = await _fetchCloudPipelineSettings;
+  if (!cloud_pipeline_url) {
+    throw new Error('Cloud Pipeline API not defined');
+  }
+  const { relativeUrl, data } = props;
+  const queryParams = new URLSearchParams(filterUndefinedFields(data)).toString();
+  const combinedUrl = queryParams ? `${relativeUrl}?${queryParams}` : relativeUrl;
+  const res = await fetchEndpoint({
+    ...props,
+    base: getCloudPipelineRestApiUrl(cloud_pipeline_url),
+    relativeUrl: combinedUrl,
+    method: HTTPMethods.GET,
+    success: defaultResponseParser,
+  });
+  return parseCloudPipelineResponse(res);
+};
+
+export const cloudPipelinePostJson = async (props: any) => {
+  const { cloud_pipeline_url } = await _fetchCloudPipelineSettings;
+  if (!cloud_pipeline_url) {
+    throw new Error('Cloud Pipeline API not defined');
+  }
+  const { relativeUrl, data } = props;
+  const res = await fetchEndpoint({
+    ...props,
+    base: getCloudPipelineRestApiUrl(cloud_pipeline_url),
+    relativeUrl,
+    method: HTTPMethods.POST,
+    success: defaultResponseParser,
+    body: generateJsonBody(data),
+  });
+  return parseCloudPipelineResponse(res);
+};
+

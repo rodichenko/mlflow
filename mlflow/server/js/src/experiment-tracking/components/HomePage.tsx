@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ReduxState, type ThunkDispatch } from '../../redux-types';
 import { getExperimentApi, searchExperimentsApi, setCompareExperiments, setExperimentTagApi } from '../actions';
-import { Navigate, useParams } from '../../common/utils/RoutingUtils';
+import { Navigate, useIsEmbedded, useParams } from '../../common/utils/RoutingUtils';
 import { getUUID } from '../../common/utils/ActionUtils';
 import RequestStateWrapper from '../../common/components/RequestStateWrapper';
 import ExperimentListView from './ExperimentListView';
@@ -33,6 +33,7 @@ const getFirstActiveExperiment = (experiments: ExperimentEntity[]) => {
 
 const HomePage = () => {
   const dispatch = useDispatch<ThunkDispatch>();
+  const isEmbedded = useIsEmbedded();
   const { theme } = useDesignSystemTheme();
   const searchRequestId = useRef(getUUID());
 
@@ -64,14 +65,16 @@ const HomePage = () => {
 
   return (
     <RequestStateWrapper requestIds={[searchRequestId.current]} customSpinner={loadingState}>
-      <div css={{ display: 'flex', height: 'calc(100% - 60px)' }}>
+      <div css={{ display: 'flex', height: isEmbedded ? 'calc(100% - 10px)' : 'calc(100% - 60px)' }}>
         {/* Left sidebar containing experiment list */}
-        <div css={{ height: '100%', paddingTop: 24, display: 'flex' }}>
-          <ExperimentListView activeExperimentIds={experimentIds || []} experiments={experiments} />
-        </div>
+        {!isEmbedded && (
+          <div css={{ height: '100%', paddingTop: 24, display: 'flex' }}>
+            <ExperimentListView activeExperimentIds={experimentIds || []} experiments={experiments} />
+          </div>
+        )}
 
-        {shouldRenderTabbedView && <ExperimentPageTabs />}
-        {!shouldRenderTabbedView && (
+        {shouldRenderTabbedView && !isEmbedded && <ExperimentPageTabs />}
+        {(!shouldRenderTabbedView || isEmbedded) && (
           // Main content with the experiment view
           <div css={{ height: '100%', flex: 1, padding: theme.spacing.md, paddingTop: theme.spacing.lg }}>
             <GetExperimentsContextProvider actions={getExperimentActions}>

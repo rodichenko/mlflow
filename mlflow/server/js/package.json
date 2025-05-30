@@ -26,6 +26,7 @@
     "@ag-grid-community/client-side-row-model": "^27.2.1",
     "@ag-grid-community/core": "^27.2.1",
     "@ag-grid-community/react": "^27.2.1",
+    "@ant-design/icons": "4.x",
     "@apollo/client": "^3.6.9",
     "@apollo/client-3-12": "npm:@apollo/client@^3.12.7",
     "@craco/craco": "7.0.0-alpha.0",
@@ -227,5 +228,6 @@
         ]
       }
     }
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

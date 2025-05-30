@@ -17,7 +17,7 @@ import { CompareRunScatter } from './CompareRunScatter';
 import { CompareRunBox } from './CompareRunBox';
 import CompareRunContour from './CompareRunContour';
 import Routes from '../routes';
-import { Link } from '../../common/utils/RoutingUtils';
+import {Link, withEmbeddedView, RoutingViewProps, EmbeddedLink} from '../../common/utils/RoutingUtils';
 import { getLatestMetrics } from '../reducers/MetricReducer';
 import CompareRunUtil from './CompareRunUtil';
 import Utils from '../../common/utils/Utils';
@@ -27,10 +27,11 @@ import { CollapsibleSection } from '../../common/components/CollapsibleSection';
 import { shouldDisableLegacyRunCompareCharts } from '../../common/utils/FeatureUtils';
 import { RunInfoEntity } from '../types';
 import { CompareRunArtifactView } from './CompareRunArtifactView';
+import CpRunRoutes from '../../cp-run/routes';
 
 const { TabPane } = LegacyTabs;
 
-type CompareRunViewProps = {
+type CompareRunViewProps = RoutingViewProps & {
   experiments: any[]; // TODO: PropTypes.instanceOf(Experiment)
   experimentIds: string[];
   comparedExperimentIds?: string[];
@@ -131,9 +132,9 @@ class CompareRunView extends Component<CompareRunViewProps, CompareRunViewState>
       const { name, basename } = experimentNameMap[experimentId];
       return (
         <TableCell className="meta-info" key={runUuid}>
-          <Link to={Routes.getExperimentPageRoute(experimentId)} title={name}>
+          <EmbeddedLink to={Routes.getExperimentPageRoute(experimentId)} title={name}>
             {basename}
-          </Link>
+          </EmbeddedLink>
         </TableCell>
       );
     });
@@ -148,7 +149,7 @@ class CompareRunView extends Component<CompareRunViewProps, CompareRunViewState>
   }
 
   getExperimentPageLink(experimentId: any, experimentName: any) {
-    return <Link to={Routes.getExperimentPageRoute(experimentId)}>{experimentName}</Link>;
+    return <EmbeddedLink to={Routes.getExperimentPageRoute(experimentId)}>{experimentName}</EmbeddedLink>;
   }
 
   getCompareExperimentsPageLinkText(numExperiments: any) {
@@ -164,10 +165,18 @@ class CompareRunView extends Component<CompareRunViewProps, CompareRunViewState>
 
   getCompareExperimentsPageLink(experimentIds: any) {
     return (
-      <Link to={Routes.getCompareExperimentsPageRoute(experimentIds)}>
+      <EmbeddedLink to={Routes.getCompareExperimentsPageRoute(experimentIds)}>
         {this.getCompareExperimentsPageLinkText(experimentIds.length)}
-      </Link>
+      </EmbeddedLink>
     );
+  }
+
+  get routingOpts() {
+    const { embedded, runId } = this.props;
+    return {
+      embedded,
+      runId
+    };
   }
 
   getExperimentLink() {
@@ -189,7 +198,31 @@ class CompareRunView extends Component<CompareRunViewProps, CompareRunViewState>
     return this.getExperimentPageLink(experimentIds[0], experiments[0].name);
   }
 
+  getCpRunLink() {
+    const {embedded, runId} = this.props;
+    if (runId) {
+      return (
+        <Link to={CpRunRoutes.getCloudPipelineRunRoute(runId, embedded)}>
+          #{runId} job
+        </Link>
+      );
+    }
+    return undefined;
+  }
+
   getTitle() {
+    const {runId} = this.props;
+    if (runId) {
+      return <FormattedMessage
+        defaultMessage="Comparing {numRuns} Runs from #{runId} job"
+        // eslint-disable-next-line max-len
+        description="Breadcrumb title for compare runs page with multiple experiments"
+        values={{
+          numRuns: this.props.runInfos.length,
+          runId,
+        }}
+      />;
+    }
     return this.hasMultipleExperiments() ? (
       <FormattedMessage
         defaultMessage="Comparing {numRuns} Runs from {numExperiments} Experiments"
@@ -267,7 +300,7 @@ class CompareRunView extends Component<CompareRunViewProps, CompareRunViewState>
       true,
       (key, data) => {
         return (
-          <Link
+          <EmbeddedLink
             to={Routes.getMetricPageRoute(
               this.props.runInfos.map((info) => info.runUuid).filter((uuid, idx) => data[idx] !== undefined),
               key,
@@ -277,7 +310,7 @@ class CompareRunView extends Component<CompareRunViewProps, CompareRunViewState>
           >
             {key}
             <i className="fas fa-chart-line" css={{ paddingLeft: '6px' }} />
-          </Link>
+          </EmbeddedLink>
         );
       },
       Utils.formatMetric,
@@ -410,7 +443,7 @@ class CompareRunView extends Component<CompareRunViewProps, CompareRunViewState>
   }
 
   render() {
-    const { experimentIds } = this.props;
+    const { experimentIds, embedded, runId } = this.props;
     const { runInfos, runNames, paramLists, metricLists, runUuids } = this.props;
 
     const colWidth = this.getTableColumnWidth();
@@ -418,7 +451,7 @@ class CompareRunView extends Component<CompareRunViewProps, CompareRunViewState>
 
     const title = this.getTitle();
     /* eslint-disable-next-line prefer-const */
-    let breadcrumbs = [this.getExperimentLink()];
+    let breadcrumbs = runId ? [this.getCpRunLink()] : [this.getExperimentLink()];
 
     const paramsLabel = this.props.intl.formatMessage({
       defaultMessage: 'Parameters',
@@ -544,7 +577,7 @@ class CompareRunView extends Component<CompareRunViewProps, CompareRunViewState>
                     overlayStyle={{ maxWidth: '400px' }}
                     mouseEnterDelay={1.0}
                   >
-                    <Link to={Routes.getRunPageRoute(r.experimentId ?? '0', r.runUuid ?? '')}>{r.runUuid}</Link>
+                    <Link to={Routes.getRunPageRoute(r.experimentId ?? '0', r.runUuid ?? '', undefined, this.routingOpts)}>{r.runUuid}</Link>
                   </LegacyTooltip>
                 </TableCell>
               ))}
@@ -758,4 +791,4 @@ const parsePythonDictString = (value: string) => {
   }
 };
 
-export default connect(mapStateToProps)(injectIntl(CompareRunView));
+export default connect(mapStateToProps)(withEmbeddedView(injectIntl(CompareRunView)));

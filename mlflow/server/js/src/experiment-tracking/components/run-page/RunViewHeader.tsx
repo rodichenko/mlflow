@@ -1,7 +1,8 @@
 import { FormattedMessage } from 'react-intl';
-import { Link } from '../../../common/utils/RoutingUtils';
+import {Link, useCloudPipelineRun, useIsEmbedded} from '../../../common/utils/RoutingUtils';
 import { OverflowMenu, PageHeader } from '../../../shared/building_blocks/PageHeader';
 import Routes from '../../routes';
+import CpRunRoutes from '../../../cp-run/routes'
 import type { ExperimentEntity, KeyValueEntity } from '../../types';
 import { RunViewModeSwitch } from './RunViewModeSwitch';
 import Utils from '../../../common/utils/Utils';
@@ -39,6 +40,8 @@ export const RunViewHeader = ({
   registeredModelVersionSummaries: RunPageModelVersionSummary[];
   isLoading?: boolean;
 }) => {
+  const embedded = useIsEmbedded();
+  const runId = useCloudPipelineRun();
   function getExperimentPageLink() {
     return hasComparedExperimentsBefore && comparedExperimentIds ? (
       <Link to={Routes.getCompareExperimentsPageRoute(comparedExperimentIds)}>
@@ -57,8 +60,16 @@ export const RunViewHeader = ({
       </Link>
     );
   }
-
-  const breadcrumbs = [getExperimentPageLink()];
+  const breadcrumbs = (() => {
+    if (runId) {
+      return [
+        <Link to={CpRunRoutes.getCloudPipelineRunRoute(runId, embedded)} data-test-id="cp-run-route">
+          #{runId} job
+        </Link>
+      ];
+    }
+    return [getExperimentPageLink()];
+  })();
 
   const renderRegisterModelButton = () => {
     return (
@@ -90,14 +101,14 @@ export const RunViewHeader = ({
             },
             ...(handleDeleteRunClick
               ? [
-                  {
-                    id: 'overflow-delete-button',
-                    onClick: handleDeleteRunClick,
-                    itemName: (
-                      <FormattedMessage defaultMessage="Delete" description="Menu item to delete an experiment run" />
-                    ),
-                  },
-                ]
+                {
+                  id: 'overflow-delete-button',
+                  onClick: handleDeleteRunClick,
+                  itemName: (
+                    <FormattedMessage defaultMessage="Delete" description="Menu item to delete an experiment run" />
+                  ),
+                },
+              ]
               : []),
           ]}
         />

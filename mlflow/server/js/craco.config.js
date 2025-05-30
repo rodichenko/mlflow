@@ -1,6 +1,7 @@
 const url = require('url');
 const path = require('path');
 const fs = require('fs');
+const dotenv = require('dotenv');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 const webpack = require('webpack');
 
@@ -14,6 +15,9 @@ function mayProxy(pathname) {
   const publicPrefixPrefix = '/static-files/';
   if (pathname.startsWith(publicPrefixPrefix)) {
     const maybePublicPath = path.resolve('public', pathname.substring(publicPrefixPrefix.length));
+    return !fs.existsSync(maybePublicPath);
+  } else if (/settings.json$/i.test(pathname)) {
+    const maybePublicPath = path.resolve('public', 'settings.json');
     return !fs.existsSync(maybePublicPath);
   } else {
     const maybePublicPath = path.resolve('public', pathname.slice(1));
@@ -142,7 +146,22 @@ function i18nOverrides(config) {
   return config;
 }
 
-module.exports = function () {
+module.exports = function ({env: ENV}) {
+  const envGlobal = dotenv.config({ path: `./.env` }).parsed || {};
+  const env = dotenv.config({ path: `./.env.${ENV}` }).parsed || {};
+  const envLocal = dotenv.config({ path: `./.env.${ENV}.local` }).parsed || {};
+
+  // collect all .env keys and values
+  const envKeys = Object.keys({...envGlobal, ...env, ...envLocal}).reduce((prev, next) => {
+    // first we search for each key inside of .env.local, because of precedence
+    const v = envLocal[next] ?? env[next] ?? envGlobal[next];
+    if (v !== undefined) {
+      prev[`${next.trim()}`] = JSON.stringify(v.trim());
+    }
+    return prev;
+  }, {});
+  console.log('server endpoint:', process.env.MLFLOW_SERVER_ENDPOINT);
+  console.log('settings.json:', process.env.MLFLOW_SETTINGS_JSON);
   const config = {
     babel: {
       env: {
@@ -312,6 +331,7 @@ module.exports = function () {
         new webpack.EnvironmentPlugin({
           MLFLOW_SHOW_GDPR_PURGING_MESSAGES: process.env.MLFLOW_SHOW_GDPR_PURGING_MESSAGES ? 'true' : 'false',
           MLFLOW_USE_ABSOLUTE_AJAX_URLS: process.env.MLFLOW_USE_ABSOLUTE_AJAX_URLS ? 'true' : 'false',
+          ...envKeys,
         }),
       ],
     },
