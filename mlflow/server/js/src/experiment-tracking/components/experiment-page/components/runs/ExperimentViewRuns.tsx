@@ -152,7 +152,8 @@ export const ExperimentViewRuns = React.memo((props: ExperimentViewRunsProps) =>
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [selectedDatasetWithRun, setSelectedDatasetWithRun] = useState<DatasetWithRunType>();
 
-  const experimentIds = useMemo(() => experiments.map(({ experimentId }) => experimentId), [experiments]);
+  const experimentIdsRaw = useMemo(() => experiments.map(({ experimentId }) => experimentId).join('|'), [experiments]);
+  const experimentIds = useMemo(() => experimentIdsRaw.split('|'), [experimentIdsRaw]);
 
   // Use new, memoized version of the row creation function.
   // Internally disabled if the flag is not set.
@@ -241,6 +242,7 @@ export const ExperimentViewRuns = React.memo((props: ExperimentViewRunsProps) =>
           runsData={runsData}
           searchFacetsState={searchFacetsState}
           experimentId={experimentId}
+          experimentIds={experimentIds}
           requestError={requestError}
           expandRows={expandRows}
           updateExpandRows={updateExpandRows}

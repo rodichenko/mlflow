@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { UpdateExperimentViewStateFn } from '../../../../types';
 import { useRunSortOptions } from '../../hooks/useRunSortOptions';
 import { ExperimentPageViewState } from '../../models/ExperimentPageViewState';
@@ -12,7 +12,7 @@ import { ExperimentViewRunsColumnSelector } from './ExperimentViewRunsColumnSele
 import { ExperimentViewRunsModeSwitch } from './ExperimentViewRunsModeSwitch';
 import { useExperimentPageViewMode } from '../../hooks/useExperimentPageViewMode';
 import Utils from '../../../../../common/utils/Utils';
-import { downloadRunsCsv } from '../../utils/experimentPage.common-utils';
+import { downloadAllRunsCsv } from '../../utils/experimentPage.common-utils';
 import { ExperimentPageUIState } from '../../models/ExperimentPageUIState';
 import { ExperimentViewRunsGroupBySelector } from './ExperimentViewRunsGroupBySelector';
 import { useUpdateExperimentViewUIState } from '../../contexts/ExperimentPageUIStateContext';
@@ -27,6 +27,7 @@ type ExperimentViewRunsControlsProps = {
   searchFacetsState: ExperimentPageSearchFacetsState;
 
   experimentId: string;
+  experimentIds?: string[];
 
   runsData: ExperimentRunsSelectorResult;
 
@@ -51,6 +52,7 @@ export const ExperimentViewRunsControls = React.memo(
     updateViewState,
     searchFacetsState,
     experimentId,
+    experimentIds,
     requestError,
     expandRows,
     updateExpandRows,
@@ -75,9 +77,40 @@ export const ExperimentViewRunsControls = React.memo(
     const filteredMetricKeys = metricKeyList;
     const filteredTagKeys = Utils.getVisibleTagKeyList(tagsList);
 
+    const [downloadPending, setDownloadPending] = useState(false);
+
     const onDownloadCsv = useCallback(
-      () => downloadRunsCsv(runsData, filteredTagKeys, filteredParamKeys, filteredMetricKeys),
-      [filteredMetricKeys, filteredParamKeys, filteredTagKeys, runsData],
+      () => {
+        (async () => {
+          try {
+            setDownloadPending(true);
+            await downloadAllRunsCsv({
+              experimentIds: experimentIds ?? [experimentId],
+              searchFacetsState: {
+                ...searchFacetsState,
+                runsPinned: uiState.runsPinned,
+              },
+              filteredTagKeys,
+              filteredParamKeys,
+              filteredMetricKeys
+            })
+          } catch (error) {
+            console.error(error);
+          } finally {
+            setDownloadPending(false);
+          }
+        })();
+      },
+      [
+        filteredMetricKeys,
+        filteredParamKeys,
+        filteredTagKeys,
+        setDownloadPending,
+        experimentId,
+        experimentIds,
+        uiState,
+        searchFacetsState,
+      ],
     );
 
     const sortOptions = useRunSortOptions(filteredMetricKeys, filteredParamKeys);

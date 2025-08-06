@@ -1,9 +1,16 @@
 import { IntlShape } from 'react-intl';
 import { saveAs } from 'file-saver';
-import { ExperimentEntity } from '../../../types';
+import {ExperimentEntity, RunEntity} from '../../../types';
 import { ExperimentRunsSelectorResult } from './experimentRuns.selector';
 import { chartDataToCsv, chartMetricHistoryToCsv, runInfosToCsv } from '../../../utils/CsvUtils';
 import type { RunsChartsRunData } from '../../runs-charts/components/RunsCharts.common';
+import type {
+  ExperimentPageSearchFacetsState
+} from '../models/ExperimentPageSearchFacetsState';
+import {
+  createSearchRunsParams
+} from './experimentPage.fetch-utils';
+import { searchAllRunsPayload } from '../../../actions';
 
 export const EXPERIMENT_FIELD_PREFIX_PARAM = '$$$param$$$';
 export const EXPERIMENT_FIELD_PREFIX_METRIC = '$$$metric$$$';
@@ -29,6 +36,67 @@ const getExperimentType = (experiment: ExperimentEntity) => {
 };
 
 const hasExperimentType = (experiment: ExperimentEntity, type: string) => getExperimentType(experiment) === type;
+
+export const downloadAllRunsCsv = async (opts: {
+  experimentIds: string[];
+  searchFacetsState: ExperimentPageSearchFacetsState & { runsPinned: string[] };
+  filteredTagKeys: string[],
+  filteredParamKeys: string[],
+  filteredMetricKeys: string[],
+}) => {
+  const {
+    experimentIds,
+    searchFacetsState,
+    filteredTagKeys,
+    filteredMetricKeys,
+    filteredParamKeys,
+  } = opts;
+  console.groupCollapsed('download runs csv');
+  const common = {
+    ...createSearchRunsParams(
+      experimentIds,
+      searchFacetsState,
+      Date.now(),
+    ),
+    requestedFacets: searchFacetsState,
+    maxResults: undefined,
+    pageSize: undefined,
+  };
+  console.log('options', common);
+  console.log('loading...');
+  const res = await searchAllRunsPayload(common);
+  console.log('loaded');
+  const {
+    runs = []
+  } = res as {
+    runs?: RunEntity[]
+  };
+  const runInfos = runs.map((r) => r.info);
+  const paramsList = runs.map((r) => r.data.params);
+  const metricsList = runs.map((r) => r.data.metrics);
+  const tagsList = runs.map((r) => (r.data.tags ?? []).reduce((acc, cur) => ({
+    ...acc,
+    [cur.key]: cur,
+  }), {}));
+  console.log('runs', runs);
+  console.log('params', paramsList);
+  console.log('metrics', metricsList);
+  console.log('tags', tagsList);
+  console.log({filteredParamKeys, filteredMetricKeys, filteredTagKeys});
+  console.log('generating csv');
+  const csv = runInfosToCsv({
+    runInfos,
+    paramKeyList: filteredParamKeys,
+    metricKeyList: filteredMetricKeys,
+    tagKeyList: filteredTagKeys,
+    paramsList,
+    metricsList,
+    tagsList,
+  });
+  const blob = new Blob([csv], { type: 'application/csv;charset=utf-8' });
+  saveAs(blob, 'runs.csv');
+  console.groupEnd();
+};
 
 /**
  * Function used for downloading run data in CSV form.

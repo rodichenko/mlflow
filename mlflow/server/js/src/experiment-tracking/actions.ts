@@ -16,11 +16,18 @@ import { fetchEndpoint, jsonBigIntResponseParser } from '../common/utils/FetchUt
 import { stringify as queryStringStringify } from 'qs';
 import { fetchEvaluationTableArtifact } from './sdk/EvaluationArtifactService';
 import type { EvaluationDataReduxState } from './reducers/EvaluationDataReducer';
-import { ArtifactListFilesResponse, EvaluationArtifactTable, KeyValueEntity } from './types';
+import {
+  ArtifactListFilesResponse,
+  EvaluationArtifactTable,
+  KeyValueEntity,
+  type SearchRunsApiResponse
+} from './types';
 import { MLFLOW_PUBLISHED_VERSION } from '../common/mlflow-published-version';
 import { MLFLOW_LOGGED_IMAGE_ARTIFACTS_PATH } from './constants';
 import { ErrorWrapper } from '../common/utils/ErrorWrapper';
 export const RUNS_SEARCH_MAX_RESULTS = 100;
+export const ALL_RUNS_SEARCH_MAX_RESULTS = 50000;
+export const ALL_RUNS_SEARCH_PAGE_SIZE = 5000;
 
 export const SEARCH_EXPERIMENTS_API = 'SEARCH_EXPERIMENTS_API';
 export const searchExperimentsApi = (id = getUUID()) => {
@@ -364,6 +371,98 @@ export const searchRunsPayload = ({
 
     // Place aside and save runs that matched filter naturally (not the pinned ones):
     (response as any).runsMatchingFilter = (baseSearchResponse as any).runs?.slice() || [];
+
+    // If we get pinned rows from the additional response, merge them into the base run list:
+    if (isArray((pinnedSearchResponse as any).runs)) {
+      if (isArray((response as any).runs)) {
+        (response as any).runs.push(...(pinnedSearchResponse as any).runs);
+      } else {
+        (response as any).runs = (pinnedSearchResponse as any).runs.slice();
+      }
+    }
+
+    // If there are any pending parents to fetch, do it before returning the response
+    const fetchParents = () => fetchMissingParents(response);
+    return shouldFetchParents ? fetchParents() : response;
+  });
+};
+
+/**
+ * Main method for fetching experiment runs payload from the API
+ */
+export const searchAllRunsPayload = (
+  {
+    // Experiment IDs to fetch runs for
+    experimentIds,
+
+    // SQL-like filter
+    filter,
+
+    // Used to select either active or deleted runs
+    runViewType,
+
+    // Maximum limit of result count (not accounting pinned rows)
+    maxResults = ALL_RUNS_SEARCH_MAX_RESULTS,
+    pageSize = ALL_RUNS_SEARCH_PAGE_SIZE,
+
+    // Order by SQL clause
+    orderBy,
+
+    // Set to "true" if parents of children runs should be fetched as well
+    shouldFetchParents,
+
+    // Array of pinned row IDs which will be fetched with another request
+    runsPinned,
+  }: any
+) => {
+  const searchAllPromise = (async (): Promise<SearchRunsApiResponse> => {
+    const doSinglePageSearch = async (pageToken: string | undefined = undefined): Promise<SearchRunsApiResponse> => {
+      const result = await MlflowService.searchRuns({
+        experiment_ids: experimentIds,
+        filter: filter,
+        run_view_type: runViewType,
+        max_results: pageSize || ALL_RUNS_SEARCH_PAGE_SIZE,
+        order_by: orderBy,
+        page_token: pageToken,
+      });
+      let runEntities = result.runs ?? [];
+      if (result.next_page_token && runEntities.length < maxResults) {
+        const nextResult = await doSinglePageSearch(result.next_page_token);
+        runEntities = runEntities.concat(nextResult.runs || [])
+      }
+      return { runs: runEntities };
+    };
+    return doSinglePageSearch();
+  })();
+
+  // Let's start with the base request for the runs
+  const promises = [searchAllPromise];
+
+  // If we want to have pinned runs, fetch them as well
+  // using another request with different filter
+  if (runsPinned?.length) {
+    promises.push(
+      MlflowService.searchRuns({
+        experiment_ids: experimentIds,
+        filter: createPinnedRowsExpression(runsPinned),
+        run_view_type: ViewType.ALL,
+      }),
+    );
+  }
+
+  // Wait for all requests to finish.
+  // - `allRunsResponse` will contain all runs that match the requested filter
+  // - `pinnedSearchResponse` will contain all pinned runs, if any
+  // We will merge and return an array with those two collections
+  return Promise.all(promises).then(([allRunsResponse, pinnedSearchResponse = {}]) => {
+    const response = allRunsResponse;
+
+    if (!isObject(response)) {
+      throw new Error(`Invalid format of the runs search response: ${String(response)}`);
+    }
+
+    // Place aside and save runs that matched filter naturally (not the pinned ones):
+    (response as any).runsMatchingFilter = (allRunsResponse as any).runs?.slice() || [];
 
     // If we get pinned rows from the additional response, merge them into the base run list:
     if (isArray((pinnedSearchResponse as any).runs)) {

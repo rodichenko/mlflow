@@ -382,7 +382,7 @@ export const ExperimentViewRunsControlsFilters = React.memo(
                 <DropdownMenu.IconWrapper>
                   <DownloadIcon />
                 </DropdownMenu.IconWrapper>
-                {`Download ${runsData.runInfos.length} runs`}
+                {`Download runs`}
               </DropdownMenu.Item>
               <DropdownMenu.Separator />
               <DropdownMenu.CheckboxItem
