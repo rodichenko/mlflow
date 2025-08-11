@@ -299,6 +299,8 @@ export const RunsChartsTooltipBody = ({
     return null;
   }
 
+  const expId = activeRun.runInfo?.experimentId ?? experimentId;
+
   const runName = activeRun.displayName || activeRun.uuid;
   const metricSuffix = singleTraceHoverData?.metricEntity ? ` (${singleTraceHoverData.metricEntity.key})` : '';
 
@@ -310,14 +312,23 @@ export const RunsChartsTooltipBody = ({
           {activeRun.groupParentInfo ? (
             <Typography.Text>{runName + metricSuffix}</Typography.Text>
           ) : (
-            <Link
-              to={getDataTraceLink?.(experimentId, runUuid) ?? Routes.getRunPageRoute(experimentId, runUuid)}
-              target="_blank"
-              css={styles.runLink}
-              onClick={closeContextMenu}
-            >
-              {runName + metricSuffix}
-            </Link>
+            expId ? (
+              <Link
+                to={getDataTraceLink?.(expId, runUuid) ?? Routes.getRunPageRoute(
+                  expId,
+                  runUuid,
+                  null,
+                  {embedded: false}
+                )}
+                target="_blank"
+                css={styles.runLink}
+                onClick={closeContextMenu}
+              >
+                {runName + metricSuffix}
+              </Link>
+            ): (
+              <span>{runName + metricSuffix}</span>
+            )
           )}
         </div>
         {!isHovering && (
